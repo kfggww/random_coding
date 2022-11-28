@@ -1,6 +1,12 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
+#include <map>
+#include <set>
+
+#include <pthread.h>
+#include <time.h>
+
 typedef void (*TimerCallback)(void *);
 class TimerCallbackEntity;
 
@@ -10,8 +16,6 @@ class TimerCallbackEntity;
  */
 class Timer {
   public:
-    Timer() = default;
-    virtual ~Timer() = default;
     virtual bool AddCallback(const TimerCallbackEntity &cbe) = 0;
     virtual bool RemoveCallback(const TimerCallback cb) = 0;
 };
@@ -47,6 +51,32 @@ class TimerCallbackEntity {
     struct timespec deadline_;
 };
 
-bool LaterThan(const struct timespec *now, const struct timespec *deadline);
+/**
+ * @brief Timer implementation base on pthread_cond_timedwait.
+ */
+class MxTimer final : public Timer {
+  public:
+    MxTimer();
+    virtual ~MxTimer();
+
+    bool AddCallback(const TimerCallbackEntity &cbe) override;
+    bool RemoveCallback(const TimerCallback cb) override;
+
+  private:
+    TimerCallbackEntity GetFirstCallbackEntity() const;
+    void HandleCallbacks();
+
+    static void *WorkerThreadEntry(void *data);
+
+  private:
+    pthread_t worker_thread_;
+
+    std::set<TimerCallbackEntity> cbe_set_;
+    std::map<TimerCallback, TimerCallbackEntity> cbe_map_;
+
+    pthread_mutex_t cbe_lock_;
+    pthread_cond_t cbe_changed_cond_;
+    bool cbe_changed_;
+};
 
 #endif

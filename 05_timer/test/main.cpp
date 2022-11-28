@@ -2,8 +2,7 @@
 #include <atomic>
 #include <cstdio>
 
-#include "timer_posix.h"
-#include "timer_soft.h"
+#include "timer.h"
 
 std::atomic<int> counter(0);
 pthread_mutex_t cond_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -29,7 +28,7 @@ void callback3(void *data) {
 }
 
 void *thread_entry(void *data) {
-    TimerLowResolution timer;
+    MxTimer timer;
     timer.AddCallback({callback1, data, 2500});
     timer.AddCallback({callback2, data, 2000});
     timer.AddCallback({callback3, data, 3000});
@@ -42,7 +41,7 @@ void *thread_entry(void *data) {
 }
 
 /**
- * Test low resolution timer with multiple threads.
+ * Test timer with multiple threads.
  */
 int main(int argc, char **argv) {
 
